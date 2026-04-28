@@ -4,6 +4,7 @@ import { useEffect, useState, useMemo } from 'react'
 import {
   DndContext,
   DragEndEvent,
+  DragOverEvent,
   DragStartEvent,
   DragOverlay,
   PointerSensor,
@@ -49,6 +50,37 @@ export default function BoardCanvas({ board, initialColumns, initialCards }: Pro
     }
   }
 
+  function onDragOver(event: DragOverEvent) {
+    const { active, over } = event
+    if (!over) return
+
+    const activeType = active.data.current?.type
+    if (activeType !== 'card') return
+
+    const card: Card = active.data.current!.card
+    const overId = String(over.id)
+    const overType = over.data.current?.type
+
+    let targetColumnId: string
+    if (overType === 'column') {
+      targetColumnId = overId
+    } else if (overType === 'card') {
+      targetColumnId = over.data.current!.card.column_id
+    } else {
+      return
+    }
+
+    // Farklı sütuna geçince kartı oraya taşı (anlık görsel güncelleme)
+    if (card.column_id !== targetColumnId) {
+      const columnCards = cards
+        .filter(c => c.column_id === targetColumnId && c.id !== card.id)
+        .sort((a, b) => (a.position < b.position ? -1 : 1))
+      const last = columnCards[columnCards.length - 1]?.position ?? null
+      const newPosition = keyBetween(last, null)
+      moveCard(card.id, targetColumnId, newPosition)
+    }
+  }
+
   function onDragEnd(event: DragEndEvent) {
     setActiveCard(null)
     const { active, over } = event
@@ -59,9 +91,9 @@ export default function BoardCanvas({ board, initialColumns, initialCards }: Pro
 
     const card: Card = active.data.current!.card
     const overId = String(over.id)
+    const overType = over.data.current?.type
 
     let targetColumnId: string
-    const overType = over.data.current?.type
     if (overType === 'column') {
       targetColumnId = overId
     } else if (overType === 'card') {
@@ -106,6 +138,7 @@ export default function BoardCanvas({ board, initialColumns, initialCards }: Pro
         sensors={sensors}
         collisionDetection={closestCorners}
         onDragStart={onDragStart}
+        onDragOver={onDragOver}
         onDragEnd={onDragEnd}
       >
         <div className="flex gap-4 overflow-x-auto pb-4">
