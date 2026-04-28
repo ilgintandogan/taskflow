@@ -32,6 +32,7 @@ export default function CardItem({ card, overlay = false }: Props) {
     transform: CSS.Transform.toString(transform),
     transition,
     opacity: isDragging ? 0.5 : 1,
+    touchAction: 'none' as const,
   }
 
   async function handleDelete(e: React.MouseEvent) {
